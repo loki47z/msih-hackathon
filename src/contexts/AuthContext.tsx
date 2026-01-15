@@ -6,6 +6,7 @@ interface AuthContextType {
   login: (email: string, password: string) => boolean;
   register: (data: { name: string; email: string; password: string; role: 'customer' | 'business'; businessName?: string }) => void;
   logout: () => void;
+  changePassword: (currentPassword: string, newPassword: string) => boolean;
   isAuthenticated: boolean;
   isBusiness: boolean;
 }
@@ -17,7 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     const savedUser = localStorage.getItem("mw_user");
     if (savedUser) {
       try {
@@ -56,10 +57,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = (email: string, password: string): boolean => {
     if (typeof window === 'undefined') return false;
-    
+
     const users = JSON.parse(localStorage.getItem("mw_users") || "[]");
     const foundUser = users.find((u: any) => u.email === email && u.password === password);
-    
+
     if (foundUser) {
       const { password: _, ...userWithoutPassword } = foundUser;
       setUser(userWithoutPassword);
@@ -71,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = (data: { name: string; email: string; password: string; role: 'customer' | 'business'; businessName?: string }) => {
     if (typeof window === 'undefined') return;
-    
+
     const users = JSON.parse(localStorage.getItem("mw_users") || "[]");
     const newUser = {
       id: `user_${Date.now()}`,
@@ -81,10 +82,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role: data.role,
       businessName: data.businessName || null,
     };
-    
+
     users.push(newUser);
     localStorage.setItem("mw_users", JSON.stringify(users));
-    
+
     const { password: _, ...userWithoutPassword } = newUser;
     setUser(userWithoutPassword as User);
     localStorage.setItem("mw_user", JSON.stringify(userWithoutPassword));
@@ -97,12 +98,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const changePassword = (currentPassword: string, newPassword: string): boolean => {
+    if (typeof window === 'undefined' || !user) return false;
+
+    const users = JSON.parse(localStorage.getItem("mw_users") || "[]");
+    const userIndex = users.findIndex((u: any) => u.id === user.id);
+
+    if (userIndex !== -1) {
+      if (users[userIndex].password === currentPassword) {
+        users[userIndex].password = newPassword;
+        localStorage.setItem("mw_users", JSON.stringify(users));
+        return true;
+      }
+    }
+    return false;
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
       login,
       register,
       logout,
+      changePassword,
       isAuthenticated: !!user,
       isBusiness: user?.role === 'business',
     }}>

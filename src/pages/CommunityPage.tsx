@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { Heart, MessageCircle, Share2, Send, Users, MessageSquare, TrendingUp, HelpCircle, Lightbulb, Settings, Grid, BarChart3, MapPin, Image, Plus, Star, Hash } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -84,7 +84,7 @@ export function CommunityPage() {
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             {t('community.subtitle') || 'Connect, collaborate, and grow with fellow Malawian business owners'}
           </p>
-          
+
           {/* Community Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
             <div className="text-center">
@@ -159,7 +159,7 @@ export function CommunityPage() {
                   </div>
                   <Button onClick={handlePost} className="gap-2">
                     <Send className="w-4 h-4" />
-                    {t('community.post_button') || 'Post'}
+                    {t('Post') || 'Post'}
                   </Button>
                 </div>
               </CardContent>
@@ -169,44 +169,40 @@ export function CommunityPage() {
             <div className="flex gap-2 mb-6 border-b border-border">
               <button
                 onClick={() => setActiveTab('all')}
-                className={`flex items-center gap-2 px-4 py-2 font-medium transition-colors border-b-2 ${
-                  activeTab === 'all'
-                    ? 'text-primary border-primary'
-                    : 'text-muted-foreground border-transparent hover:text-foreground'
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'all'
+                  ? 'text-primary border-primary'
+                  : 'text-muted-foreground border-transparent hover:text-foreground'
+                  }`}
               >
                 <Grid className="w-4 h-4" />
                 All Posts
               </button>
               <button
                 onClick={() => setActiveTab('trending')}
-                className={`flex items-center gap-2 px-4 py-2 font-medium transition-colors border-b-2 ${
-                  activeTab === 'trending'
-                    ? 'text-primary border-primary'
-                    : 'text-muted-foreground border-transparent hover:text-foreground'
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'trending'
+                  ? 'text-primary border-primary'
+                  : 'text-muted-foreground border-transparent hover:text-foreground'
+                  }`}
               >
                 <TrendingUp className="w-4 h-4" />
                 Trending
               </button>
               <button
                 onClick={() => setActiveTab('questions')}
-                className={`flex items-center gap-2 px-4 py-2 font-medium transition-colors border-b-2 ${
-                  activeTab === 'questions'
-                    ? 'text-primary border-primary'
-                    : 'text-muted-foreground border-transparent hover:text-foreground'
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'questions'
+                  ? 'text-primary border-primary'
+                  : 'text-muted-foreground border-transparent hover:text-foreground'
+                  }`}
               >
                 <HelpCircle className="w-4 h-4" />
                 Questions
               </button>
               <button
                 onClick={() => setActiveTab('opportunities')}
-                className={`flex items-center gap-2 px-4 py-2 font-medium transition-colors border-b-2 ${
-                  activeTab === 'opportunities'
-                    ? 'text-primary border-primary'
-                    : 'text-muted-foreground border-transparent hover:text-foreground'
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'opportunities'
+                  ? 'text-primary border-primary'
+                  : 'text-muted-foreground border-transparent hover:text-foreground'
+                  }`}
               >
                 <Lightbulb className="w-4 h-4" />
                 Opportunities
@@ -245,9 +241,8 @@ export function CommunityPage() {
                       <div className="flex items-center gap-6 pt-4 border-t border-border">
                         <button
                           onClick={() => toggleLike(post.id)}
-                          className={`flex items-center gap-2 text-sm transition-colors ${
-                            isLiked ? 'text-red-500' : 'text-muted-foreground hover:text-red-500'
-                          }`}
+                          className={`flex items-center gap-2 text-sm transition-colors ${isLiked ? 'text-red-500' : 'text-muted-foreground hover:text-red-500'
+                            }`}
                         >
                           <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
                           <span>{post.likes + (isLiked ? 1 : 0)}</span>
@@ -341,22 +336,22 @@ export function CommunityPage() {
                 </h3>
                 <div className="space-y-2">
                   <Button variant="outline" className="w-full justify-start gap-2" asChild>
-                    <a href="/add-product">
+                    <Link to="/add-product">
                       <Plus className="w-4 h-4" />
                       Add Product
-                    </a>
+                    </Link>
                   </Button>
                   <Button variant="outline" className="w-full justify-start gap-2" asChild>
-                    <a href="/dashboard">
+                    <Link to="/dashboard">
                       <Grid className="w-4 h-4" />
                       Dashboard
-                    </a>
+                    </Link>
                   </Button>
                   <Button variant="outline" className="w-full justify-start gap-2" asChild>
-                    <a href="/messages">
+                    <Link to="/messages">
                       <MessageSquare className="w-4 h-4" />
                       Messages
-                    </a>
+                    </Link>
                   </Button>
                 </div>
               </CardContent>

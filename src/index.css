@@ -89,3 +89,9 @@
 .animate-fade-in {
   animation: fade-in 0.5s ease-out forwards;
 }
+
+/* Fix for Leaflet z-index issues overlapping other UI elements */
+.leaflet-container {
+  z-index: 0 !important;
+  position: relative; /* Ensure it creates a stacking context */
+}

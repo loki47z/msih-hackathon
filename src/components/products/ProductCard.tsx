@@ -31,13 +31,18 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
       {/* Image */}
       <div className="relative aspect-[4/3] overflow-hidden">
         <img
-          src={product.image}
+          src={product.images?.[0]?.image || 'https://via.placeholder.com/400x300?text=No+Image'}
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           onError={(e) => {
             (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=No+Image';
           }}
         />
+        {product.images && product.images.length > 1 && (
+          <span className="absolute bottom-3 right-3 px-2 py-1 text-xs font-semibold bg-black/70 text-white rounded-lg">
+            +{product.images.length - 1} more
+          </span>
+        )}
         <span className="absolute top-3 left-3 px-3 py-1 text-xs font-semibold bg-primary text-primary-foreground rounded-lg">
           {product.category}
         </span>

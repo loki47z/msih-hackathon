@@ -12,6 +12,15 @@ interface Suggestion {
   type: 'product' | 'category' | 'location';
 }
 
+interface AnalysisResult {
+  labels: string[];
+  objects: Array<{
+    name: string;
+    confidence: number;
+  }>;
+  confidence: number;
+}
+
 export const SmartSearch: React.FC<SmartSearchProps> = ({ 
   onSearch, 
   placeholder = "Search products, e.g. \"cheap tomatoes near me\"",
@@ -24,11 +33,33 @@ export const SmartSearch: React.FC<SmartSearchProps> = ({
   const [showImagePanel, setShowImagePanel] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const [showCameraMenu, setShowCameraMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   
   // Initialize AI services
   const aiServices = useRef<AIServices | null>(null);
   
+  // Close camera menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showCameraMenu) {
+        const target = event.target as Element;
+        if (!target.closest('.camera-dropdown')) {
+          setShowCameraMenu(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showCameraMenu]);
+
   useEffect(() => {
     aiServices.current = new AIServices();
     // Warm up AI services
@@ -74,7 +105,6 @@ export const SmartSearch: React.FC<SmartSearchProps> = ({
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (onSearch && query.trim()) {
-      console.log('AI search triggered:', query);
       // Use AI services for enhanced search
       performAISearch(query);
       setShowDropdown(false);
@@ -85,8 +115,6 @@ export const SmartSearch: React.FC<SmartSearchProps> = ({
     setQuery(suggestion.text);
     setShowDropdown(false);
     if (onSearch && aiServices.current) {
-      console.log('AI suggestion selected:', suggestion.text);
-      // Use AI services for enhanced search
       performAISearch(suggestion.text);
     }
   };
@@ -96,18 +124,14 @@ export const SmartSearch: React.FC<SmartSearchProps> = ({
     if (!aiServices.current) return;
     
     try {
-      console.log('Performing AI search for:', searchQuery);
       const aiResults = await aiServices.current.search(searchQuery, {
         timestamp: new Date().toISOString(),
         sessionId: generateSessionId()
       });
       
-      console.log('AI search results:', aiResults);
-      
       // Apply AI filters to the search
       if (aiResults.filters) {
         // The AI service returns structured filters that we can apply
-        console.log('AI generated filters:', aiResults.filters);
       }
       
       onSearch(searchQuery);
@@ -134,17 +158,14 @@ export const SmartSearch: React.FC<SmartSearchProps> = ({
       
       recognition.onstart = () => {
         setIsListening(true);
-        console.log('Voice recognition started');
       };
       
       recognition.onend = () => {
         setIsListening(false);
-        console.log('Voice recognition ended');
       };
       
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
-        console.log('Voice result:', transcript);
         setQuery(transcript);
         if (onSearch) {
           onSearch(transcript);
@@ -152,34 +173,28 @@ export const SmartSearch: React.FC<SmartSearchProps> = ({
       };
       
       recognition.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
         setIsListening(false);
         // Handle different error types
         switch (event.error) {
           case 'no-speech':
-            console.log('No speech detected');
             break;
           case 'audio-capture':
-            console.log('Microphone not available');
             break;
           case 'not-allowed':
-            console.log('Microphone permission denied');
             break;
           default:
-            console.log('Speech recognition error:', event.error);
+            break;
         }
       };
       
       try {
         recognition.start();
       } catch (error) {
-        console.error('Failed to start speech recognition:', error);
         setIsListening(false);
       }
     } else {
-      console.log('Speech recognition not supported in this browser');
       // Fallback: show a message or use text input
-      alert('Voice search is not supported in your browser. Please use the text search instead.');
+      alert('Voice search is not supported in your browser. Please use text search instead.');
     }
   };
 
@@ -187,49 +202,139 @@ export const SmartSearch: React.FC<SmartSearchProps> = ({
     fileInputRef.current?.click();
   };
 
+  const handleCameraCapture = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } // Use back camera on mobile
+      });
+      streamRef.current = stream;
+      setShowCamera(true);
+      setShowImagePanel(true);
+      
+      // Wait for video element to be available
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+        }
+      }, 100);
+    } catch (error) {
+      alert('Camera access denied. Please allow camera access or use file upload instead.');
+    }
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current) return;
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(videoRef.current, 0, 0);
+      const imageData = canvas.toDataURL('image/jpeg', 0.8);
+      setSelectedImage(imageData);
+      setShowCamera(false);
+      stopCamera();
+      setAnalysisResult(null);
+      analyzeImage(imageData);
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setShowCamera(false);
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        setSelectedImage(event.target?.result as string);
+        const imageData = event.target?.result as string;
+        setSelectedImage(imageData);
         setShowImagePanel(true);
-        analyzeImage();
+        setShowCamera(false);
+        setAnalysisResult(null);
+        analyzeImage(imageData);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const analyzeImage = async () => {
+  const analyzeImage = async (imageData: string) => {
     if (!aiServices.current) return;
     
     setIsAnalyzing(true);
     try {
-      console.log('Starting AI image analysis...');
-      
-      // Use AI services for image recognition
+      // Use AI services for image recognition (now using real MobileNet)
       const imageResults = await aiServices.current.search(`image_analysis_${Date.now()}`, {
-        imageData: selectedImage,
+        imageData: imageData,
         analysisType: 'image_recognition',
         timestamp: new Date().toISOString()
       });
       
-      console.log('AI image analysis results:', imageResults);
-      
-      // Extract meaningful search terms from AI results
-      if (imageResults.results && imageResults.results.length > 0) {
-        const searchTerms = imageResults.results
-          .slice(0, 3)
-          .map((result: any) => result.name || result.description || 'image product')
-          .join(' ');
+      // Process and store analysis result for UI display
+      if (imageResults.imageAnalysis) {
+        // Parse objects with confidence scores
+        let processedObjects: Array<{ name: string; confidence: number }> = [];
         
-        // Update search query with AI results
-        setQuery(searchTerms);
-        if (onSearch) {
-          onSearch(searchTerms);
+        if (Array.isArray(imageResults.imageAnalysis.objects)) {
+          processedObjects = imageResults.imageAnalysis.objects.map((obj: any) => {
+            if (typeof obj === 'string') {
+              // Handle string format like "apple, 0.95"
+              const [name, confidence] = obj.split(',').map(s => s.trim());
+              return {
+                name: name || obj,
+                confidence: parseFloat(confidence) || 0.5
+              };
+            } else if (typeof obj === 'object' && obj !== null) {
+              // Handle object format like { name: "apple", confidence: 0.95 }
+              return {
+                name: obj.name || obj.label || 'unknown',
+                confidence: obj.confidence || obj.score || 0.5
+              };
+            }
+            return {
+              name: String(obj),
+              confidence: 0.5
+            };
+          });
+        }
+        
+        // Sort objects by confidence (highest first)
+        processedObjects.sort((a, b) => b.confidence - a.confidence);
+        
+        const analysisData: AnalysisResult = {
+          labels: imageResults.imageAnalysis.labels || [],
+          objects: processedObjects,
+          confidence: imageResults.imageAnalysis.confidence || 0.5
+        };
+        
+        setAnalysisResult(analysisData);
+        
+        // Use highest scoring object for search
+        if (processedObjects.length > 0) {
+          const topObject = processedObjects[0];
+          const searchQuery = topObject.name;
+          
+          setQuery(searchQuery);
+          if (onSearch) {
+            onSearch(searchQuery);
+          }
+        } else if (imageResults.imageAnalysis.labels.length > 0) {
+          // Fallback to labels
+          const searchTerms = imageResults.imageAnalysis.labels.slice(0, 2).join(' ');
+          setQuery(searchTerms);
+          if (onSearch) {
+            onSearch(searchTerms);
+          }
         }
       } else {
-        // Fallback search
+        // Fallback search if no analysis results
         const fallbackTerms = 'image search results';
         setQuery(fallbackTerms);
         if (onSearch) {
@@ -270,7 +375,7 @@ export const SmartSearch: React.FC<SmartSearchProps> = ({
           <button 
             type="button" 
             onClick={handleVoiceSearch}
-            className={`voice-search-btn absolute right-12 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-muted transition-colors ${isListening ? 'listening text-red-500' : 'text-muted-foreground'}`}
+            className={`voice-search-btn absolute right-6 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-muted transition-colors ${isListening ? 'listening text-red-500' : 'text-muted-foreground'}`}
             title="Search by voice"
           >
             <svg className="mic-icon w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -282,18 +387,55 @@ export const SmartSearch: React.FC<SmartSearchProps> = ({
             {isListening && <div className="voice-pulse absolute inset-0 rounded-md border-2 border-red-500 animate-pulse"></div>}
           </button>
           
-          {/* Image Search Button */}
-          <button 
-            type="button" 
-            onClick={handleImageSearch}
-            className="image-search-btn absolute right-6 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground"
-            title="Search by photo"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-              <circle cx="12" cy="13" r="4"></circle>
-            </svg>
-          </button>
+          {/* Single Camera Button with Dropdown */}
+          <div className="camera-dropdown absolute right-12 top-1/2 -translate-y-1/2">
+            <button 
+              type="button" 
+              onClick={() => setShowCameraMenu(!showCameraMenu)}
+              className="camera-btn p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground"
+              title="Camera search"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                <circle cx="12" cy="13" r="4"></circle>
+              </svg>
+            </button>
+            
+            {/* Camera Dropdown Menu */}
+            {showCameraMenu && (
+              <div className="camera-menu absolute top-full right-0 mt-1 bg-card border border-border rounded-md shadow-lg z-50 min-w-[140px]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCameraMenu(false);
+                    handleCameraCapture();
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors flex items-center gap-2 rounded-t-md"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                  </svg>
+                  Take photo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCameraMenu(false);
+                    handleImageSearch();
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors flex items-center gap-2 rounded-b-md"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                  Upload image
+                </button>
+              </div>
+            )}
+          </div>
           
           {/* Hidden file input */}
           <input
@@ -340,12 +482,17 @@ export const SmartSearch: React.FC<SmartSearchProps> = ({
       {/* Image Search Results Panel (compact, anchored) */}
       {showImagePanel && (
         <div className="image-search-panel absolute top-full right-0 mt-2 z-50">
-          <div className="bg-card rounded-md shadow-lg w-80 max-h-96 overflow-hidden border border-border">
+          <div className="bg-card rounded-md shadow-lg w-80 max-h-[28rem] overflow-hidden border border-border">
             <div className="image-search-header flex items-center justify-between px-3 py-2 border-b border-border">
-              <span className="image-search-title font-medium text-sm">📷 AI Image Search</span>
+              <span className="image-search-title font-medium text-sm">
+                {showCamera ? '📸 Take Photo' : '📷 AI Image Search'}
+              </span>
               <button 
                 type="button" 
-                onClick={() => setShowImagePanel(false)}
+                onClick={() => {
+                  stopCamera();
+                  setShowImagePanel(false);
+                }}
                 className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded"
                 aria-label="Close image search panel"
               >
@@ -355,58 +502,138 @@ export const SmartSearch: React.FC<SmartSearchProps> = ({
                 </svg>
               </button>
             </div>
-            <div className="image-search-body p-3 flex gap-3 items-start">
-              <div className="image-search-preview flex-shrink-0 w-20 h-20 bg-muted rounded overflow-hidden">
-                {selectedImage ? (
-                  <img src={selectedImage} alt="Search preview" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">No image</div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                {isAnalyzing ? (
-                  <div className="image-search-loading flex items-center gap-2">
-                    <div className="spinner w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                    <div className="text-sm">AI is analyzing your image...</div>
+            
+            {/* Camera View */}
+            {showCamera ? (
+              <div className="camera-view">
+                <div className="relative bg-black">
+                  <video 
+                    ref={videoRef} 
+                    autoPlay 
+                    playsInline 
+                    muted
+                    className="w-full h-48 object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-32 h-32 border-2 border-white/50 rounded-lg"></div>
                   </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground">
-                    <p className="font-medium text-sm">Image analysis complete</p>
-                    <p className="text-xs mt-1">Showing similar products and suggestions.</p>
-                  </div>
-                )}
+                </div>
+                <div className="p-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      stopCamera();
+                    }}
+                    className="btn btn-sm flex-1 bg-muted hover:bg-muted/80 text-foreground rounded text-sm py-2"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={capturePhoto}
+                    className="btn btn-sm flex-1 bg-primary hover:bg-primary/90 text-primary-foreground rounded text-sm py-2 flex items-center justify-center gap-1"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                    </svg>
+                    Capture
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="image-search-actions px-3 py-2 border-t border-border flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  // trigger search with the current image (extract simple query)
-                  const simpleQuery = selectedImage ? `image_search_${Date.now()}` : '';
-                  if (simpleQuery && aiServices.current) {
-                    setIsAnalyzing(true);
-                    aiServices.current.search(simpleQuery, { imageData: selectedImage }).then((res: any) => {
-                      // apply results (update query or notify parent)
-                      if (res && res.results && res.results.length > 0) {
-                        const terms = res.results.slice(0,3).map((r: any) => r.name || r.description || '').join(' ');
-                        setQuery(terms);
-                        if (onSearch) onSearch(terms);
-                      }
-                    }).catch(() => {}).finally(() => setIsAnalyzing(false));
-                  }
-                }}
-                className="btn btn-sm flex-1 bg-primary text-white rounded"
-              >
-                Search with image
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowImagePanel(false)}
-                className="btn btn-outline btn-sm flex-1 rounded"
-              >
-                Close
-              </button>
-            </div>
+            ) : (
+              <>
+                <div className="image-search-body p-3 flex gap-3 items-start">
+                  <div className="image-search-preview flex-shrink-0 w-20 h-20 bg-muted rounded overflow-hidden">
+                    {selectedImage ? (
+                      <img src={selectedImage} alt="Search preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">No image</div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {isAnalyzing ? (
+                      <div className="image-search-loading flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="spinner w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                          <div className="text-sm font-medium">Analyzing image...</div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Using AI to identify objects</p>
+                      </div>
+                    ) : analysisResult ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-500">✓</span>
+                          <span className="font-medium text-sm">Objects detected</span>
+                          <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                            {Math.round(analysisResult.confidence * 100)}% confident
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {analysisResult.objects.slice(0, 3).map((obj, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => {
+                                setQuery(obj.name);
+                                if (onSearch) onSearch(obj.name);
+                              }}
+                              className="text-xs bg-muted hover:bg-muted/80 px-2 py-1 rounded-full transition-colors flex items-center gap-1"
+                            >
+                              {obj.name}
+                              <span className="text-muted-foreground/60">({Math.round(obj.confidence * 100)}%)</span>
+                            </button>
+                          ))}
+                        </div>
+                        {analysisResult.labels.length > 0 && (
+                          <div className="text-xs text-muted-foreground">
+                            Categories: {analysisResult.labels.join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">
+                        <p className="font-medium text-sm">Ready to analyze</p>
+                        <p className="text-xs mt-1">Take a photo or upload an image</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="image-search-actions px-3 py-2 border-t border-border flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCameraCapture}
+                    className="btn btn-sm flex-1 bg-muted hover:bg-muted/80 text-foreground rounded text-sm py-1.5 flex items-center justify-center gap-1"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                      <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                    Camera
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="btn btn-sm flex-1 bg-muted hover:bg-muted/80 text-foreground rounded text-sm py-1.5 flex items-center justify-center gap-1"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="17 8 12 3 7 8"></polyline>
+                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    Upload
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowImagePanel(false);
+                      setAnalysisResult(null);
+                    }}
+                    className="btn btn-sm flex-1 bg-primary hover:bg-primary/90 text-primary-foreground rounded text-sm py-1.5"
+                  >
+                    Done
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

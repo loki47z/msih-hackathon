@@ -1,3 +1,4 @@
+
 # MalawiMarket
 
 This is a modern marketplace web app for Malawian businesses and customers.
@@ -21,7 +22,8 @@ This is a modern marketplace web app for Malawian businesses and customers.
 - `src/` — source code (components, pages, services, hooks, etc.)
 - `public/` — static assets
 
-## Contributors
+## License
 
-- Thomas Manong'a
-- Timothy Mwamondwe
+MIT
+# TRIAL
+# Trial

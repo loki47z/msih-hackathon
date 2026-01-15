@@ -1,5 +1,4 @@
 import React from 'react';
-import { ExternalLink as ExternalLinkIcon } from 'lucide-react';
 
 interface ExternalLinkProps {
   href: string;

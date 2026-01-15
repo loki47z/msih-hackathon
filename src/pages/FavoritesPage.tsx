@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 
 export function FavoritesPage() {
   const { isAuthenticated } = useAuth();
-  const { t } = useLanguage();
+  useLanguage(); // Keep for potential future translations
   const { favorites } = useFavorites();
   const [searchQuery, setSearchQuery] = useState('');
   const [showAIBanner, setShowAIBanner] = useState(false);
@@ -48,7 +48,6 @@ export function FavoritesPage() {
 
   const handleImageSearch = () => {
     // Placeholder for image search functionality
-    console.log('Image search clicked');
   };
 
   const clearAISearch = () => {

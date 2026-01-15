@@ -7,6 +7,9 @@ export const categories = [
   "Food & Beverages",
   "Home & Garden",
   "Health & Beauty",
+  "Beauty Services",
+  "Event Services",
+  "Professional Services",
   "Services",
 ];
 

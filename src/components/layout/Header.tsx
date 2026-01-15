@@ -1,27 +1,30 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  Home, 
-  MapPin, 
-  LayoutDashboard, 
-  Users, 
-  MessageCircle, 
+import {
+  Home,
+  MapPin,
+  LayoutDashboard,
+  Users,
+  MessageCircle,
   Plus,
   LogOut,
   LogIn,
   Menu,
-  X
+  X,
+  Lock
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useState } from 'react';
 import { SmartSearch } from '@/components/search/SmartSearch';
+import { ChangePasswordDialog } from '@/components/auth/ChangePasswordDialog';
 
 export function Header() {
   const { user, logout, isAuthenticated, isBusiness } = useAuth();
   const { language, setLanguage, t } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -32,7 +35,7 @@ export function Header() {
 
   const handleSearch = (query: string) => {
     console.log('Search query:', query);
-    
+
     // If we're on the home page, update the filter directly
     if (location.pathname === '/') {
       // Dispatch a custom event to update the search filter
@@ -57,9 +60,17 @@ export function Header() {
             </span>
           </Link>
 
+          {/* Search Bar - Mobile */}
+          <div className="md:hidden flex flex-1 max-w-md mx-8">
+            <SmartSearch
+              onSearch={handleSearch}
+              placeholder={t('search.placeholder')}
+            />
+          </div>
+
           {/* Search Bar - Desktop */}
           <div className="hidden md:flex flex-1 max-w-md mx-8">
-            <SmartSearch 
+            <SmartSearch
               onSearch={handleSearch}
               placeholder={t('search.placeholder')}
             />
@@ -71,17 +82,15 @@ export function Header() {
             <div className="flex items-center p-1 bg-muted rounded-lg mr-2">
               <button
                 onClick={() => setLanguage('en')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                  language === 'en' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
-                }`}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${language === 'en' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
+                  }`}
               >
                 EN
               </button>
               <button
                 onClick={() => setLanguage('ny')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                  language === 'ny' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
-                }`}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${language === 'ny' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
+                  }`}
               >
                 NY
               </button>
@@ -149,6 +158,16 @@ export function Header() {
                       <span>❤️</span>
                       <span>My Favourites</span>
                     </Link>
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        setChangePasswordOpen(true);
+                      }}
+                      className="flex items-center gap-3 w-full px-4 py-3 text-sm hover:bg-muted"
+                    >
+                      <Lock className="w-4 h-4" />
+                      <span>{t('nav.change_password')}</span>
+                    </button>
                     <hr className="border-border" />
                     <button
                       onClick={() => {
@@ -188,17 +207,15 @@ export function Header() {
               <div className="flex items-center p-1 bg-muted rounded-lg w-fit mb-2">
                 <button
                   onClick={() => setLanguage('en')}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                    language === 'en' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
-                  }`}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${language === 'en' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
+                    }`}
                 >
                   EN
                 </button>
                 <button
                   onClick={() => setLanguage('ny')}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                    language === 'ny' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
-                  }`}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${language === 'ny' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
+                    }`}
                 >
                   NY
                 </button>
@@ -234,6 +251,12 @@ export function Header() {
                   <span>{t('nav.messages')}</span>
                 </Link>
               )}
+              {isAuthenticated && (
+                <button onClick={() => { setMobileMenuOpen(false); setChangePasswordOpen(true); }} className="flex items-center gap-3 px-3 py-3 hover:bg-muted rounded-lg w-full text-left">
+                  <Lock className="w-5 h-5" />
+                  <span>{t('nav.change_password')}</span>
+                </button>
+              )}
               {isAuthenticated ? (
                 <button onClick={() => { setMobileMenuOpen(false); handleLogout(); }} className="flex items-center gap-3 px-3 py-3 hover:bg-muted rounded-lg w-full text-left">
                   <LogOut className="w-5 h-5" />
@@ -249,6 +272,7 @@ export function Header() {
           </nav>
         )}
       </div>
+      <ChangePasswordDialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen} />
     </header>
   );
 }

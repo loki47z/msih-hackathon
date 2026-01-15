@@ -2,7 +2,7 @@ export const translations: Record<string, Record<string, string>> = {
   en: {
     // Header
     "nav.home": "Home",
-    "nav.products": "Products",
+    "nav.products": "Products & Services",
     "nav.businesses": "Businesses",
     "nav.map": "Map",
     "nav.community": "Community",
@@ -11,25 +11,26 @@ export const translations: Record<string, Record<string, string>> = {
     "nav.login": "Login",
     "nav.register": "Register",
     "nav.logout": "Logout",
-    "nav.add_product": "Add Product",
-    "search.placeholder": "Search products...",
+    "nav.add_product": "Add Item",
+    "nav.change_password": "Change Password",
+    "search.placeholder": "Search products & services...",
 
     // Hero
     "hero.title": "Discover Local Treasures",
-    "hero.subtitle": "Connect with the best businesses and products across Malawi. Support local commerce today.",
+    "hero.subtitle": "Connect with the best businesses, products and services across Malawi. Support local commerce today.",
     "hero.start_shopping": "Start Exploration",
     "hero.view_map": "View Map",
 
     // Products
-    "products.title": "Featured Products",
-    "products.subtitle": "Discover amazing products from local businesses across Malawi",
-    "products.no_results": "No products found",
+    "products.title": "Featured Products & Services",
+    "products.subtitle": "Discover amazing products and services from local businesses across Malawi",
+    "products.no_results": "No products or services found",
     "products.clear_filters": "Try adjusting your filters",
     "products.contact": "Contact",
     "products.view": "View Details",
 
     // Filters
-    "filter.search": "Search products...",
+    "filter.search": "Search products & services...",
     "filter.category": "Category",
     "filter.all_categories": "All Categories",
     "filter.location": "Location",
@@ -43,34 +44,34 @@ export const translations: Record<string, Record<string, string>> = {
     "filter.clear": "Clear Filters",
 
     // Product Detail
-    "product.back": "Back to Products",
+    "product.back": "Back to List",
     "product.contact_seller": "Contact Seller",
-    "product.buy_now": "Buy Now",
+    "product.buy_now": "Buy / Book Now",
     "product.reviews": "reviews",
     "product.description": "Description",
     "product.location": "Location",
-    "product.business": "Sold by",
-    "product.similar": "Similar Products",
+    "product.business": "Provider",
+    "product.similar": "Similar Items",
 
     // Dashboard
     "dashboard.title": "Business Dashboard",
     "dashboard.welcome": "Welcome back",
-    "dashboard.products": "My Products",
+    "dashboard.products": "My Items",
     "dashboard.orders": "Orders",
     "dashboard.revenue": "Revenue",
-    "dashboard.views": "Product Views",
+    "dashboard.views": "Item Views",
     "dashboard.recent_orders": "Recent Orders",
-    "dashboard.manage_products": "Manage Products",
-    "dashboard.add_product": "Add New Product",
+    "dashboard.manage_products": "Manage Items",
+    "dashboard.add_product": "Add New Item",
 
     // Add Product
-    "add.title": "Add New Product",
-    "add_product.title": "Add New Product",
-    "add.name": "Product Name",
+    "add.title": "Add New Item",
+    "add_product.title": "Add New Product or Service",
+    "add.name": "Item Name",
     "add.description": "Description",
     "add.price": "Price (MK)",
     "add.category": "Category",
-    "add.submit": "Add Product",
+    "add.submit": "Add Item",
 
     // Auth
     "auth.login": "Login",
@@ -128,6 +129,7 @@ export const translations: Record<string, Record<string, string>> = {
     "nav.register": "Lembani",
     "nav.logout": "Tulukani",
     "nav.add_product": "Onjezani Katundu",
+    "nav.change_password": "Sinthani Chinsinsi",
     "search.placeholder": "Sakani katundu...",
 
     // Hero

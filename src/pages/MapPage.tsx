@@ -5,7 +5,6 @@ import { MapPin, Search, Building } from 'lucide-react';
 import { mockProducts } from '@/data/products';
 import { formatPrice } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import 'leaflet/dist/leaflet.css';
@@ -36,7 +35,7 @@ const MALAWI_ZOOM = 7;
 
 function MapController({ center }: { center: [number, number] }) {
   const map = useMap();
-  
+
   useEffect(() => {
     map.flyTo(center, 10, { duration: 1 });
   }, [center, map]);
@@ -56,8 +55,8 @@ export function MapPage() {
 
   const filteredProducts = mockProducts.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         product.location.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         product.businessName.toLowerCase().includes(searchQuery.toLowerCase());
+      product.location.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.businessName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCity = selectedCity === 'all' || product.location.city === selectedCity;
     return matchesSearch && matchesCity;
   });
@@ -122,13 +121,12 @@ export function MapPage() {
                     <div
                       key={product.id}
                       onClick={() => handleProductClick(product)}
-                      className={`p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
-                        selectedProduct === product.id ? 'border-primary bg-primary/5' : 'border-border'
-                      }`}
+                      className={`p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${selectedProduct === product.id ? 'border-primary bg-primary/5' : 'border-border'
+                        }`}
                     >
                       <div className="flex gap-3">
                         <img
-                          src={product.image}
+                          src={product.images?.[0]?.image || 'https://via.placeholder.com/64x64?text=No+Image'}
                           alt={product.name}
                           className="w-16 h-16 object-cover rounded-md flex-shrink-0"
                         />
@@ -148,21 +146,22 @@ export function MapPage() {
               </div>
             </div>
 
-            {/* Map Area */}
-            <div className="flex-1">
-              <div className="bg-card rounded-lg border overflow-hidden min-h-[500px] lg:min-h-[600px]">
+            {/* Map Area - Fixed z-index to stay below nav */}
+            <div className="flex-1 relative z-0">
+              <div className="bg-card rounded-lg border overflow-hidden min-h-[500px] lg:min-h-[600px] relative z-0">
                 <MapContainer
                   center={MALAWI_CENTER}
                   zoom={MALAWI_ZOOM}
                   className="w-full min-h-[500px] lg:min-h-[600px]"
                   scrollWheelZoom={true}
+                  style={{ zIndex: 0 }}
                 >
                   <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
                   <MapController center={mapCenter} />
-                  
+
                   {filteredProducts.map(product => (
                     <Marker
                       key={product.id}
@@ -172,7 +171,7 @@ export function MapPage() {
                       <Popup>
                         <div className="min-w-[200px]">
                           <img
-                            src={product.image}
+                            src={product.images?.[0]?.image || 'https://via.placeholder.com/200x96?text=No+Image'}
                             alt={product.name}
                             className="w-full h-24 object-cover rounded-lg mb-2"
                           />
@@ -195,6 +194,8 @@ export function MapPage() {
           </div>
         </div>
       </section>
+
+
     </div>
   );
 }

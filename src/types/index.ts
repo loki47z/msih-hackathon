@@ -4,7 +4,7 @@ export interface Product {
   description: string;
   price: number;
   category: string;
-  image: string;
+  images: ProductImage[];
   businessName: string;
   businessId: string;
   location: {
@@ -15,6 +15,15 @@ export interface Product {
   rating: number;
   reviewCount: number;
   dateAdded: string;
+}
+
+export interface ProductImage {
+  id: string;
+  productId: string;
+  image: string; // URL or base64 string
+  imageMimeType: string;
+  order: number;
+  createdAt: string;
 }
 
 export interface User {

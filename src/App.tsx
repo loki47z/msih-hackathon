@@ -1,6 +1,4 @@
 import React from 'react';
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -20,6 +18,7 @@ import { FavoritesPage } from "@/pages/FavoritesPage";
 import { AddProductPage } from "@/pages/AddProductPage";
 import NotFound from "./pages/NotFound";
 import { AIServices } from "@/services/ai";
+import { Toaster } from "sonner";
 
 const queryClient = new QueryClient();
 
@@ -36,7 +35,7 @@ const AIContext = React.createContext({
 
 export function AIProvider({ children }: { children: React.ReactNode }) {
   return (
-    <AIContext.Provider value={AIContext}>
+    <AIContext.Provider value={{ search: aiServices, cache: aiServices.getCacheStats(), clearCache: () => aiServices.clearCache() }}>
       {children}
     </AIContext.Provider>
   );
@@ -81,6 +80,7 @@ function App() {
                   <Route path="/add-product" element={<Layout><AddProductPage /></Layout>} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
+                <Toaster position="top-right" richColors />
               </BrowserRouter>
             </AIProvider>
           </AuthProvider>

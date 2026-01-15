@@ -60,9 +60,12 @@ export function ProductPage() {
   const [selectedRating, setSelectedRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
   const [reviews, setReviews] = useState<Review[]>(mockReviews.filter(r => r.productId === id));
-  const [showPopup, setShowPopup] = useState(true);
+  const [_showPopup, setShowPopup] = useState(true);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   
-  const product = mockProducts.find(p => p.id === id);
+  const userProducts = JSON.parse(localStorage.getItem("mw_products") || "[]");
+  const allProducts = [...mockProducts, ...userProducts];
+  const product = allProducts.find(p => p.id === id);
 
   // Fix for default icon not showing in Leaflet
   useEffect(() => {
@@ -129,6 +132,8 @@ export function ProductPage() {
             onClick={() => interactive && onRate && onRate(star)}
             className={`${interactive ? 'hover:scale-110' : ''} transition-transform`}
             disabled={!interactive}
+            aria-label={interactive ? `Rate ${star} star${star > 1 ? 's' : ''}` : `Rated ${star} star${star > 1 ? 's' : ''}`}
+            title={interactive ? `Rate ${star} star${star > 1 ? 's' : ''}` : `Rated ${star} star${star > 1 ? 's' : ''}`}
           >
             <Star 
               className={`w-5 h-5 ${
@@ -158,23 +163,59 @@ export function ProductPage() {
         {/* Product Detail */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
           {/* Product Image */}
-          <div className="relative aspect-square rounded-2xl overflow-hidden bg-muted">
-            <img
-              src={product.image}
-              alt={product.name}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = 'https://via.placeholder.com/600x600?text=No+Image';
-              }}
-            />
-            <button
-              onClick={() => toggleFavorite(product.id)}
-              className={`absolute top-4 right-4 p-3 rounded-full transition-all ${
-                liked ? 'bg-red-50 text-red-500' : 'bg-white/90 hover:bg-white text-gray-600'
-              }`}
-            >
-              <Heart className={`w-6 h-6 ${liked ? 'fill-red-500' : ''}`} />
-            </button>
+          <div className="space-y-4">
+            {/* Main Image */}
+            <div className="relative aspect-square rounded-2xl overflow-hidden bg-muted">
+              <img
+                src={product.images?.[selectedImageIndex]?.image || 'https://via.placeholder.com/600x600?text=No+Image'}
+                alt={product.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://via.placeholder.com/600x600?text=No+Image';
+                }}
+              />
+              <button
+                onClick={() => toggleFavorite(product.id)}
+                className={`absolute top-4 right-4 p-3 rounded-full transition-all ${
+                  liked ? 'bg-red-50 text-red-500' : 'bg-white/90 hover:bg-white text-gray-600'
+                }`}
+                aria-label={liked ? "Remove from favorites" : "Add to favorites"}
+                title={liked ? "Remove from favorites" : "Add to favorites"}
+              >
+                <Heart className={`w-6 h-6 ${liked ? 'fill-red-500' : ''}`} />
+              </button>
+              {product.images && product.images.length > 1 && (
+                <div className="absolute bottom-4 left-4 px-3 py-1 bg-black/70 text-white text-sm rounded-lg">
+                  {selectedImageIndex + 1} / {product.images.length}
+                </div>
+              )}
+            </div>
+
+            {/* Thumbnail Gallery */}
+            {product.images && product.images.length > 1 && (
+              <div className="grid grid-cols-4 gap-2">
+                {product.images.map((image, index) => (
+                  <button
+                    key={image.id}
+                    onClick={() => setSelectedImageIndex(index)}
+                    className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                      index === selectedImageIndex 
+                        ? 'border-primary scale-105' 
+                        : 'border-transparent hover:border-muted-foreground'
+                    }`}
+                  >
+                    <img
+                      src={image.image}
+                      alt={`${product.name} - Image ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150x150?text=No+Image';
+                      }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Product Details */}
@@ -237,7 +278,11 @@ export function ProductPage() {
                       </ExternalLink>
                     </div>
                     <div className="text-center">
-                      <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                      <button
+                        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        aria-label="Like this place"
+                        title="Like this place"
+                      >
                         <Heart className="w-4 h-4" />
                         <span>Like this place</span>
                       </button>

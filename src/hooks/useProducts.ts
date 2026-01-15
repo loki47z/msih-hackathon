@@ -19,14 +19,11 @@ export function useProducts() {
   const allProducts = useMemo(() => {
     const userProducts = JSON.parse(localStorage.getItem("mw_products") || "[]");
     const products = [...mockProducts, ...userProducts];
-    console.log('All products loaded:', products.length);
     return products;
   }, [mockProducts]);
 
   const filteredProducts = useMemo(() => {
     let result = [...allProducts];
-    console.log('Filtering products with filters:', filters);
-    console.log('Starting with products:', result.length);
 
     // AI-enhanced search filter
     if (filters.search && filters.search.trim()) {
@@ -35,7 +32,6 @@ export function useProducts() {
       // Use AI services for enhanced search
       const performAISearch = async () => {
         try {
-          console.log('Using AI services for product filtering...');
           const aiResults = await aiServices.search(search, {
             timestamp: new Date().toISOString(),
             sessionId: 'filter_' + Date.now(),
@@ -46,20 +42,16 @@ export function useProducts() {
             }
           });
           
-          console.log('AI search results for filtering:', aiResults);
-          
           // Apply AI-generated filters if available
           if (aiResults.filters) {
             // Apply AI-recommended category filter
             if (aiResults.filters.category) {
               result = result.filter((p) => p.category === aiResults.filters.category);
-              console.log('Applied AI category filter:', aiResults.filters.category);
             }
             
             // Apply AI-recommended city filter
             if (aiResults.filters.city) {
               result = result.filter((p) => p.location.city === aiResults.filters.city);
-              console.log('Applied AI city filter:', aiResults.filters.city);
             }
             
             // Apply AI-recommended price range
@@ -69,7 +61,6 @@ export function useProducts() {
                 result = result.filter(
                   (p) => (minPrice === null || p.price >= minPrice) && (maxPrice === null || p.price <= maxPrice)
                 );
-                console.log('Applied AI price filter:', minPrice, '-', maxPrice);
               }
             }
           }
@@ -82,7 +73,6 @@ export function useProducts() {
               ...result.filter(p => aiProductIds.has(p.id)),
               ...result.filter(p => !aiProductIds.has(p.id))
             ];
-            console.log('Applied AI semantic ranking');
           }
           
         } catch (error) {
@@ -100,19 +90,16 @@ export function useProducts() {
       
       // Perform AI search asynchronously
       performAISearch();
-      console.log('After search filter:', result.length);
     }
 
     // Category filter
     if (filters.category !== 'All Categories') {
       result = result.filter((p) => p.category === filters.category);
-      console.log('After category filter:', result.length);
     }
 
     // City filter
     if (filters.city !== 'All Cities') {
       result = result.filter((p) => p.location.city === filters.city);
-      console.log('After city filter:', result.length);
     }
 
     // Price filter
@@ -121,7 +108,6 @@ export function useProducts() {
       result = result.filter(
         (p) => (minPrice === null || p.price >= minPrice) && (maxPrice === null || p.price <= maxPrice)
       );
-      console.log('After price filter:', result.length);
     }
 
     // Sorting
@@ -140,7 +126,6 @@ export function useProducts() {
         result.sort((a, b) => new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime());
     }
 
-    console.log('Final filtered products:', result.length);
     return result;
   }, [allProducts, filters]);
 
@@ -166,9 +151,7 @@ export function useProducts() {
   // Get AI-powered product recommendations
   const getRecommendations = async (productId: string, limit = 5) => {
     try {
-      console.log('Getting AI recommendations for product:', productId);
       const recommendations = await aiServices.getRecommendations(productId, limit);
-      console.log('AI recommendations:', recommendations);
       return recommendations;
     } catch (error) {
       console.error('Failed to get AI recommendations:', error);
@@ -183,7 +166,6 @@ export function useProducts() {
 
   // Clear AI cache
   const clearCache = () => {
-    console.log('Clearing AI cache');
     aiServices.clearCache();
   };
 

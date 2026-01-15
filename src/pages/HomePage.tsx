@@ -1,12 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useProducts } from '@/hooks/useProducts';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ProductCard } from '@/components/products/ProductCard';
 import { ProductFilters } from '@/components/products/ProductFilters';
-import { SmartSearch } from '@/components/search/SmartSearch';
 import { Package } from 'lucide-react';
-import { useEffect } from 'react';
 
 export function HomePage() {
   const { products, filters, updateFilter, clearFilters } = useProducts();
@@ -34,11 +32,6 @@ export function HomePage() {
     };
   }, [updateFilter]);
 
-  const handleSearch = (query: string) => {
-    console.log('Search query:', query);
-    // Update the search filter directly
-    updateFilter('search', query);
-  };
 
   return (
     <div>
