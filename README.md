@@ -1,3 +1,4 @@
+# Hackathon Team - Hollow Purple
 
 # MalawiMarket
 
@@ -22,8 +23,7 @@ This is a modern marketplace web app for Malawian businesses and customers.
 - `src/` — source code (components, pages, services, hooks, etc.)
 - `public/` — static assets
 
-## License
+## Contributors
 
-MIT
-# TRIAL
-# Trial
+- Timothy Mwamondwe
+- Thomas Manong'a
