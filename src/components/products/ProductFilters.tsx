@@ -18,8 +18,9 @@ export function ProductFilters({ filters, onFilterChange, onClear }: ProductFilt
       <div className="flex flex-wrap items-end gap-4">
         {/* Category */}
         <div className="flex-1 min-w-[140px]">
-          <label className="block text-xs text-muted-foreground mb-1">{t('filter.category')}</label>
+          <label htmlFor="filter-category" className="block text-xs text-muted-foreground mb-1">{t('filter.category')}</label>
           <select
+            id="filter-category"
             value={filters.category}
             onChange={(e) => onFilterChange('category', e.target.value)}
             className="w-full px-3 py-2 text-sm bg-card border border-border rounded-lg focus:outline-none focus:border-primary"
@@ -34,8 +35,9 @@ export function ProductFilters({ filters, onFilterChange, onClear }: ProductFilt
 
         {/* City */}
         <div className="flex-1 min-w-[140px]">
-          <label className="block text-xs text-muted-foreground mb-1">{t('filter.location')}</label>
+          <label htmlFor="filter-city" className="block text-xs text-muted-foreground mb-1">{t('filter.location')}</label>
           <select
+            id="filter-city"
             value={filters.city}
             onChange={(e) => onFilterChange('city', e.target.value)}
             className="w-full px-3 py-2 text-sm bg-card border border-border rounded-lg focus:outline-none focus:border-primary"
@@ -73,8 +75,9 @@ export function ProductFilters({ filters, onFilterChange, onClear }: ProductFilt
 
         {/* Sort */}
         <div className="flex-1 min-w-[140px]">
-          <label className="block text-xs text-muted-foreground mb-1">{t('filter.sort')}</label>
+          <label htmlFor="filter-sort" className="block text-xs text-muted-foreground mb-1">{t('filter.sort')}</label>
           <select
+            id="filter-sort"
             value={filters.sortBy}
             onChange={(e) => onFilterChange('sortBy', e.target.value)}
             className="w-full px-3 py-2 text-sm bg-card border border-border rounded-lg focus:outline-none focus:border-primary"
@@ -86,6 +89,18 @@ export function ProductFilters({ filters, onFilterChange, onClear }: ProductFilt
           </select>
         </div>
 
+        {/* Radius (km) */}
+        <div className="flex-1 min-w-[140px]">
+          <label className="block text-xs text-muted-foreground mb-1">Radius (km)</label>
+          <input
+            type="number"
+            min={0}
+            placeholder="Any"
+            value={filters.maxDistance ?? ''}
+            onChange={(e) => onFilterChange('maxDistance', e.target.value ? Number(e.target.value) : null)}
+            className="w-full px-3 py-2 text-sm bg-card border border-border rounded-lg focus:outline-none focus:border-primary"
+          />
+        </div>
         {/* Clear Button */}
         <button
           onClick={onClear}

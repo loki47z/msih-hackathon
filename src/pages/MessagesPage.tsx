@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { Search, Send, ArrowLeft, Phone, MoreVertical, Paperclip, Image } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Textarea } from '@/components/ui/textarea';
 import { mockMessages } from '@/data/products';
 import { getRelativeTime } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -20,30 +21,106 @@ export function MessagesPage() {
   const { t } = useLanguage();
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [messageText, setMessageText] = useState('');
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { id: '1', text: 'Hello! I\'m interested in your product.', sender: 'user', timestamp: new Date().toISOString() },
-    { id: '2', text: 'Yes, the mangoes are still available!', sender: 'other', timestamp: new Date().toISOString() },
-  ]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [conversations, setConversations] = useState<any[]>(() => [...mockMessages]);
+  const [messagesMap, setMessagesMap] = useState<Record<string, ChatMessage[]>>(() => ({}));
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Load persisted conversations/messages from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedConvos = localStorage.getItem('mw_conversations');
+      const savedMessages = localStorage.getItem('mw_messages');
+      if (savedConvos) setConversations(JSON.parse(savedConvos));
+      if (savedMessages) setMessagesMap(JSON.parse(savedMessages));
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  // Persist conversations and messagesMap
+  useEffect(() => {
+    try {
+      localStorage.setItem('mw_conversations', JSON.stringify(conversations));
+      localStorage.setItem('mw_messages', JSON.stringify(messagesMap));
+    } catch (e) {
+      // ignore
+    }
+  }, [conversations, messagesMap]);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  const selectedConversation = mockMessages.find(m => m.id === selectedChat);
+  const [tempConversation, setTempConversation] = useState<any | null>(null);
+
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const sellerId = searchParams.get('sellerId');
+    const sellerNameParam = searchParams.get('sellerName');
+    const decodedSellerName = sellerNameParam ? decodeURIComponent(sellerNameParam) : null;
+    const sellerAvatarParam = searchParams.get('sellerAvatar');
+    const sellerAvatar = sellerAvatarParam || (decodedSellerName ? decodedSellerName.charAt(0) : 'S');
+    if (!sellerId) return;
+
+    // If there's an existing conversation with this seller, open it
+    const existing = conversations.find(m => m.senderId === sellerId) || mockMessages.find(m => m.senderId === sellerId);
+    if (existing) {
+      setSelectedChat(existing.id);
+      setChatMessages(messagesMap[existing.id] || []);
+      return;
+    }
+
+    // Otherwise create a temporary conversation and open it
+    const tempId = `new-${sellerId}`;
+    const temp = { id: tempId, senderId: sellerId, senderName: decodedSellerName || 'Seller', senderAvatar: sellerAvatar, lastMessage: '', timestamp: new Date().toISOString(), unread: 0 };
+    setTempConversation(temp);
+    // add to conversations list so it stays in sidebar after closing
+    setConversations(prev => [temp, ...prev.filter(c => c.id !== temp.id)]);
+    setMessagesMap(prev => ({ ...prev, [tempId]: [] }));
+    setSelectedChat(tempId);
+    setChatMessages([]);
+  }, [searchParams]);
+
+  const selectedConversation = conversations.find(m => m.id === selectedChat) || (tempConversation && tempConversation.id === selectedChat ? tempConversation : undefined);
 
   const handleSendMessage = () => {
-    if (!messageText.trim()) return;
-    
+    if (!messageText.trim() || !selectedChat) return;
+
     const newMessage: ChatMessage = {
       id: Date.now().toString(),
       text: messageText,
       sender: 'user',
       timestamp: new Date().toISOString(),
     };
-    
+
+    // update messagesMap for the conversation
+    setMessagesMap(prev => {
+      const updated = { ...(prev || {}) };
+      updated[selectedChat] = [...(updated[selectedChat] || chatMessages), newMessage];
+      return updated;
+    });
+
     setChatMessages(prev => [...prev, newMessage]);
     setMessageText('');
   };
+
+  // Auto-scroll to bottom when messages change
+  const scrollToBottom = useCallback(() => {
+    try {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      } else if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      }
+    } catch (e) {}
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatMessages.length, scrollToBottom]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -61,7 +138,7 @@ export function MessagesPage() {
           </div>
         </div>
 
-        <div className="bg-card rounded-xl border border-border overflow-hidden" style={{ height: 'calc(100vh - 200px)' }}>
+        <div className="bg-card rounded-xl border border-border overflow-hidden h-[calc(100vh-200px)]">
           <div className="flex h-full">
             {/* Conversation List */}
             <div className={`w-full md:w-96 border-r border-border flex flex-col ${selectedChat ? 'hidden md:flex' : 'flex'}`}>
@@ -78,33 +155,43 @@ export function MessagesPage() {
 
               {/* Conversations */}
               <div className="flex-1 overflow-y-auto">
-                {mockMessages.map(conversation => (
-                  <button
-                    key={conversation.id}
-                    onClick={() => setSelectedChat(conversation.id)}
-                    className={`w-full flex items-start gap-3 p-4 hover:bg-muted/50 transition-colors text-left border-b border-border/50 ${
-                      selectedChat === conversation.id ? 'bg-muted' : ''
-                    }`}
-                  >
-                    <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold text-lg flex-shrink-0">
-                      {conversation.senderAvatar}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <h3 className="font-semibold text-base truncate">{conversation.senderName}</h3>
-                        <span className="text-xs text-muted-foreground flex-shrink-0">
-                          {getRelativeTime(conversation.timestamp)}
-                        </span>
+                {conversations.map((conversation) => {
+                  const convoMessages = messagesMap[conversation.id] || [];
+                  const latest = convoMessages.length > 0 ? convoMessages[convoMessages.length - 1] : null;
+                  const previewText = latest ? latest.text : (conversation.lastMessage || '');
+                  const previewTime = latest ? latest.timestamp : conversation.timestamp;
+
+                  return (
+                    <button
+                      key={conversation.id}
+                      onClick={() => {
+                        setSelectedChat(conversation.id);
+                        setChatMessages(messagesMap[conversation.id] || []);
+                      }}
+                      className={`w-full flex items-start gap-3 p-4 hover:bg-muted/50 transition-colors text-left border-b border-border/50 ${
+                        selectedChat === conversation.id ? 'bg-muted' : ''
+                      }`}
+                    >
+                      <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold text-lg flex-shrink-0">
+                        {conversation.senderAvatar}
                       </div>
-                      <p className="text-sm text-muted-foreground truncate">{conversation.lastMessage}</p>
-                    </div>
-                    {conversation.unread > 0 && (
-                      <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center flex-shrink-0 font-medium">
-                        {conversation.unread}
-                      </span>
-                    )}
-                  </button>
-                ))}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <h3 className="font-semibold text-base truncate">{conversation.senderName}</h3>
+                          <span className="text-xs text-muted-foreground flex-shrink-0">
+                            {getRelativeTime(previewTime)}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground truncate">{previewText}</p>
+                      </div>
+                      {conversation.unread > 0 && (
+                        <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center flex-shrink-0 font-medium">
+                          {conversation.unread}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -117,6 +204,8 @@ export function MessagesPage() {
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setSelectedChat(null)}
+                        title="Back"
+                        aria-label="Back to conversations"
                         className="md:hidden p-2 hover:bg-muted rounded-lg transition-colors"
                       >
                         <ArrowLeft className="w-5 h-5" />
@@ -187,7 +276,7 @@ export function MessagesPage() {
                         onChange={(e) => setMessageText(e.target.value)}
                         className="flex-1 h-11"
                       />
-                      <Button type="submit" size="icon" className="h-11 w-11">
+                      <Button type="submit" size="icon" className="h-11 w-11" aria-label="Send message">
                         <Send className="w-4 h-4" />
                       </Button>
                     </div>

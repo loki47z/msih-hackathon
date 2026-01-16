@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Home,
@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useState } from 'react';
 import { SmartSearch } from '@/components/search/SmartSearch';
 import { ChangePasswordDialog } from '@/components/auth/ChangePasswordDialog';
 
@@ -34,8 +33,6 @@ export function Header() {
   };
 
   const handleSearch = (query: string) => {
-    console.log('Search query:', query);
-
     // If we're on the home page, update the filter directly
     if (location.pathname === '/') {
       // Dispatch a custom event to update the search filter
@@ -55,13 +52,13 @@ export function Header() {
             <div className="w-10 h-10 flex items-center justify-center bg-primary text-primary-foreground rounded-lg">
               <Home className="w-5 h-5" />
             </div>
-            <span className="text-xl font-bold">
+            <span className="text-xl font-bold hidden md:inline">
               Malawi<span className="text-primary">Market</span>
             </span>
           </Link>
 
           {/* Search Bar - Mobile */}
-          <div className="md:hidden flex flex-1 max-w-md mx-8">
+          <div className="md:hidden flex flex-1 max-w-md mx-2">
             <SmartSearch
               onSearch={handleSearch}
               placeholder={t('search.placeholder')}

@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Product, FilterState } from '@/types';
 import { mockProducts } from '@/data/products';
 import { AIServices } from '@/services/ai';
+import { haversineDistance } from '@/lib/utils';
 
 export function useProducts() {
   const [filters, setFilters] = useState<FilterState>({
@@ -12,6 +13,23 @@ export function useProducts() {
     sortBy: 'newest',
     maxDistance: null,
   });
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  // When maxDistance is set, attempt to get user's geolocation (once)
+  useEffect(() => {
+    if (filters.maxDistance === null) return;
+    if (!navigator || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      },
+      (err) => {
+        console.warn('Geolocation unavailable or denied:', err.message);
+        setUserLocation(null);
+      },
+      { enableHighAccuracy: false, maximumAge: 1000 * 60 * 5, timeout: 5000 }
+    );
+  }, [filters.maxDistance]);
   
   // Initialize AI services
   const aiServices = useMemo(() => new AIServices(), []);
@@ -124,6 +142,19 @@ export function useProducts() {
       case 'newest':
       default:
         result.sort((a, b) => new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime());
+    }
+    // Distance filter (requires userLocation)
+    if (filters.maxDistance !== null) {
+      // If we have a user location, filter by Haversine distance
+      if (userLocation) {
+        result = result.filter((p) => {
+          const d = haversineDistance(userLocation.lat, userLocation.lng, p.location.lat, p.location.lng);
+          return d <= (filters.maxDistance as number);
+        });
+      } else {
+        // If no user location, don't filter (user likely denied geolocation)
+        // Alternatively, you could infer from city but we'll skip for now.
+      }
     }
 
     return result;

@@ -8,6 +8,7 @@ import { getRelativeTime } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 
 const tagColors: Record<string, string> = {
   Wholesale: 'bg-blue-100 text-blue-700',
@@ -24,6 +25,8 @@ export function CommunityPage() {
   const [newPost, setNewPost] = useState('');
   const [likedPosts, setLikedPosts] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState('all');
+  const [posts, setPosts] = useState(mockPosts);
+  const { toast } = useToast();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -43,15 +46,63 @@ export function CommunityPage() {
     if (!newPost.trim()) return;
     // In a real app, this would create a new post
     setNewPost('');
+    toast({ title: 'Posted', description: 'Your post was added (local preview).' });
   };
 
-  const filteredPosts = mockPosts.filter(post => {
+  const filteredPosts = posts.filter(post => {
     if (activeTab === 'all') return true;
     if (activeTab === 'trending') return post.likes > 20;
     if (activeTab === 'questions') return post.tag === 'Question';
     if (activeTab === 'opportunities') return post.tag === 'Opportunity';
     return true;
   });
+
+  const [commentsMap, setCommentsMap] = useState<Record<string, { id: string; author: string; text: string; timestamp: string; }[]>>(() => {
+    const map: Record<string, { id: string; author: string; text: string; timestamp: string; }[]> = {};
+    posts.forEach(p => {
+      map[p.id] = [];
+    });
+    return map;
+  });
+
+  const [commentInput, setCommentInput] = useState<Record<string, string>>({});
+  const [openCommentBox, setOpenCommentBox] = useState<Record<string, boolean>>({});
+
+  const handleAddComment = (postId: string) => {
+    const text = (commentInput[postId] || '').trim();
+    if (!text) return;
+    const newComment = {
+      id: Date.now().toString(),
+      author: user?.name || 'You',
+      text,
+      timestamp: new Date().toISOString(),
+    };
+    setCommentsMap(prev => ({ ...prev, [postId]: [...(prev[postId] || []), newComment] }));
+    setPosts(prev => prev.map(p => (p.id === postId ? { ...p, comments: p.comments + 1 } : p)));
+    setCommentInput(prev => ({ ...prev, [postId]: '' }));
+    toast({ title: 'Comment added', description: 'Your comment was added (local preview).' });
+  };
+
+  const handleShare = async (postId: string) => {
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+    const shareUrl = `${window.location.origin}/community#${post.id}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: post.content.slice(0, 80), text: post.content, url: shareUrl });
+        toast({ title: 'Shared', description: 'Post shared via native share.' });
+        return;
+      }
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl);
+        toast({ title: 'Link copied', description: 'Post link copied to clipboard.' });
+        return;
+      }
+    } catch (e) {
+      // fallthrough to prompt
+    }
+    window.prompt('Copy this link', shareUrl);
+  };
 
   const topContributors = [
     { name: 'Salima Fresh Farms', avatar: 'S', posts: 48, badge: '🏆', color: 'bg-green-500' },
@@ -247,15 +298,53 @@ export function CommunityPage() {
                           <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
                           <span>{post.likes + (isLiked ? 1 : 0)}</span>
                         </button>
-                        <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                        <button onClick={() => setOpenCommentBox(prev => ({ ...prev, [post.id]: !prev[post.id] }))} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
                           <MessageCircle className="w-5 h-5" />
                           <span>{post.comments}</span>
                         </button>
-                        <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors ml-auto">
+                        <button onClick={() => handleShare(post.id)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors ml-auto">
                           <Share2 className="w-5 h-5" />
                           <span>Share</span>
                         </button>
                       </div>
+
+                      {openCommentBox[post.id] && (
+                        <div className="mt-4 border-t pt-4 space-y-3">
+                          {(commentsMap[post.id] && commentsMap[post.id].length > 0) ? (
+                            commentsMap[post.id].map(c => (
+                              <div key={c.id} className="flex items-start gap-3">
+                                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold text-sm">
+                                  {c.author.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-sm">
+                                    <span className="font-medium mr-2">{c.author}</span>
+                                    <span className="text-xs text-muted-foreground">{getRelativeTime(c.timestamp)}</span>
+                                  </div>
+                                  <div className="text-sm">{c.text}</div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-sm text-muted-foreground">No comments yet</div>
+                          )}
+
+                          <div className="mt-2">
+                            <Textarea
+                              value={commentInput[post.id] || ''}
+                              onChange={(e) => setCommentInput(prev => ({ ...prev, [post.id]: e.target.value }))}
+                              placeholder="Write a comment..."
+                              className="min-h-[60px] mb-2"
+                            />
+                            <div className="flex justify-end">
+                              <Button onClick={() => handleAddComment(post.id)} className="gap-2">
+                                <Send className="w-4 h-4" />
+                                Comment
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 );

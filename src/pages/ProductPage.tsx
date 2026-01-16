@@ -101,7 +101,10 @@ export function ProductPage() {
       navigate('/login');
       return;
     }
-    navigate('/messages');
+    const sellerId = product.businessId;
+    const sellerName = encodeURIComponent(product.businessName);
+    const sellerAvatar = encodeURIComponent((product.businessName || '').charAt(0).toUpperCase());
+    navigate(`/messages?sellerId=${sellerId}&sellerName=${sellerName}&sellerAvatar=${sellerAvatar}`);
   };
 
   const handleSubmitReview = (e: React.FormEvent) => {
